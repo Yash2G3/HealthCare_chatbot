@@ -1,0 +1,32 @@
+
+MEDICAL CONSULTATION REPORT
+Generated on: 2025-03-25 10:05:42
+Session ID: 0540b664-5ef1-426c-ae3e-886a1b743da1
+
+PATIENT INFORMATION
+-----------------
+Age: 12
+Gender: female
+Weight: 66 kg
+Height: 162 cm
+Blood Group: o+
+
+SYMPTOMS AND CONDITION
+-------------------
+Main Symptoms: fever and sever pain in bones
+Duration: 15 days
+Severity (1-10): 9
+
+MEDICAL HISTORY
+-------------
+Existing Conditions: yes
+Current Medications: yes
+
+ASSESSMENT
+---------
+Condition: SEVERE
+Requires Immediate Medical Attention: Yes
+
+RECOMMENDATIONS
+-------------
+URGENT: Please seek immediate medical attention.

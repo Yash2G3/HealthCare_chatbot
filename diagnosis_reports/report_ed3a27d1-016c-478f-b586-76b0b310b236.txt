@@ -1,0 +1,32 @@
+
+MEDICAL CONSULTATION REPORT
+Generated on: 2025-03-25 10:04:55
+Session ID: ed3a27d1-016c-478f-b586-76b0b310b236
+
+PATIENT INFORMATION
+-----------------
+Age: 12
+Gender: male
+Weight: 82 kg
+Height: 182 cm
+Blood Group: a+
+
+SYMPTOMS AND CONDITION
+-------------------
+Main Symptoms: fever, cough, headache, heartache
+Duration: 15 days
+Severity (1-10): 9
+
+MEDICAL HISTORY
+-------------
+Existing Conditions: yes
+Current Medications: yes
+
+ASSESSMENT
+---------
+Condition: SEVERE
+Requires Immediate Medical Attention: Yes
+
+RECOMMENDATIONS
+-------------
+URGENT: Please seek immediate medical attention.
