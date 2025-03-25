@@ -1,0 +1,22 @@
+# Environment variables
+.env
+
+# Python virtual environment
+new_venv/
+venv/
+env/
+.venv/
+
+# Generated files
+# diagnosis_reports/
+*.pyc
+__pycache__/
+.DS_Store
+
+# IDE files
+.idea/
+.vscode/
+
+# Logs
+logs/
+*.log

@@ -1,0 +1,12 @@
+fastapi==0.109.0
+uvicorn==0.27.0
+python-dotenv==1.0.0
+groq
+pydantic==2.5.3
+langchain-groq
+langchain-core
+streamlit==1.32.0
+gTTS==2.3.2
+SpeechRecognition==3.10.0
+requests==2.31.0
+python-multipart==0.0.6

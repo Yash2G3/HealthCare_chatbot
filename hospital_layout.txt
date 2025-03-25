@@ -1,0 +1,60 @@
+# Hospital Layout Information
+
+## Main Building
+- Floor 1
+  - Main Reception (Room 101)
+  - Emergency Department (Rooms 110-120)
+  - Radiology (Rooms 130-140)
+  - Cafeteria (Room 150)
+  - Pharmacy (Room 160)
+  - Restrooms (Rooms 170-175)
+
+- Floor 2
+  - Cardiology Department (Rooms 201-215)
+  - Orthopedics Department (Rooms 220-235)
+  - Neurology Department (Rooms 240-255) 
+  - Staff Lounge (Room 260)
+  - Conference Rooms (Rooms 270-275)
+  - Restrooms (Rooms 280-285)
+
+- Floor 3
+  - Pediatrics Department (Rooms 301-315)
+  - Obstetrics & Gynecology (Rooms 320-335)
+  - Oncology Department (Rooms 340-355)
+  - Laboratory Services (Rooms 360-370)
+  - Restrooms (Rooms 380-385)
+
+## East Wing
+- Floor 1
+  - Outpatient Clinic (Rooms E101-E120)
+  - Physical Therapy (Rooms E130-E140)
+  - Dermatology Clinic (Rooms E150-E160)
+  - Restrooms (Rooms E170-E175)
+
+- Floor 2
+  - Psychiatry Department (Rooms E201-E215)
+  - Psychology Services (Rooms E220-E230)
+  - Administrative Offices (Rooms E240-E260)
+  - Restrooms (Rooms E270-E275)
+
+## West Wing
+- Floor 1
+  - Surgery Department (Rooms W101-W115)
+  - Pre-op Area (Rooms W120-W130)
+  - Post-op Recovery (Rooms W140-W155)
+  - Intensive Care Unit (Rooms W160-W180)
+  - Restrooms (Rooms W190-W195)
+
+- Floor 2
+  - Pulmonology Department (Rooms W201-W215)
+  - Gastroenterology Department (Rooms W220-W235)
+  - Endocrinology Department (Rooms W240-W255)
+  - Restrooms (Rooms W290-W295)
+
+## Directory of Services
+- Emergency Services: Floor 1, Main Building, Rooms 110-120
+- Laboratory Tests: Floor 3, Main Building, Rooms 360-370
+- X-ray and Imaging: Floor 1, Main Building, Rooms 130-140
+- Pharmacy Services: Floor 1, Main Building, Room 160
+- Patient Admissions: Floor 1, Main Building, Room 101
+- Cafeteria: Floor 1, Main Building, Room 150
