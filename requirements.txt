@@ -9,3 +9,10 @@ python-dotenv
 groq
 uvicorn
 streamlit-mic-recorder
+streamlit
+gtts
+groq
+google-cloud-speech
+google-oauth2-tool
+python-dotenv
+uuid
