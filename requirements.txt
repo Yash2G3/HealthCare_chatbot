@@ -8,4 +8,5 @@ langchain-groq
 python-dotenv
 groq
 uvicorn
-pyaudio
+portaudio19-dev
+python3-pyaudio
