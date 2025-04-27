@@ -6,9 +6,9 @@ import base64
 from io import BytesIO
 import datetime
 import os
-import speech_recognition as sr
 from gtts import gTTS
-# import pyaudio # Removed: No longer directly used for checking
+from google.cloud import speech # ADDED
+from google.oauth2 import service_account # ADDED for secrets handling
 from dotenv import load_dotenv
 from groq import Groq, GroqError # Use Groq client directly
 import time # Import time for potential delays
@@ -18,30 +18,10 @@ load_dotenv()
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 
 # --- Microphone Check ---
-MICROPHONE_AVAILABLE = False
-MICROPHONE_ERROR_MSG = ""
-try:
-    # Check if SpeechRecognition can list microphones
-    # This implicitly checks if a working audio input backend is available
-    mic_list = sr.Microphone.list_microphone_names()
-    if not mic_list:
-        MICROPHONE_ERROR_MSG = "No microphones found by SpeechRecognition. Please check your system's audio input devices and ensure necessary libraries (like PyAudio or PortAudio) are installed."
-    else:
-        MICROPHONE_AVAILABLE = True
-        print("Microphones found:", mic_list) # Optional: Log found mics
-except ImportError:
-    # This might catch if speech_recognition itself is missing, though less likely
-    MICROPHONE_ERROR_MSG = "SpeechRecognition library not found. Please run: pip install SpeechRecognition"
-except OSError as e:
-    # This can catch issues like PortAudio library not found on some systems
-     MICROPHONE_ERROR_MSG = f"Error initializing audio system: {e}. Ensure microphone is connected, permissions are granted, and necessary audio libraries (like PortAudio) are installed."
-     # On macOS, you might need: brew install portaudio
-     # On Debian/Ubuntu: sudo apt-get install libasound-dev portaudio19-dev libportaudio2 libportaudiocpp0
-     # On Fedora: sudo dnf install portaudio-devel alsa-lib-devel
-except Exception as e:
-    MICROPHONE_ERROR_MSG = f"Error initializing audio input: {e}. Ensure microphone is connected and permissions are granted."
-    # On macOS, you might need to grant terminal/IDE microphone access in System Settings > Privacy & Security > Microphone.
-
+# REMOVED pyaudio-based microphone check logic
+# We will rely on st.audio_input which works independently
+MICROPHONE_AVAILABLE = True # Assume browser support for audio input
+MICROPHONE_ERROR_MSG = "" # Clear previous error message
 
 # --- Hospital Layout ---
 try:
@@ -137,6 +117,10 @@ def validate_diagnosis_answer(question_num, answer):
     """Validate user input based on question type"""
     answer = str(answer).strip()
 
+    # --- ADDED: Remove trailing period if present ---
+    if answer.endswith('.'):
+        answer = answer[:-1].strip() # Remove the last character and strip again
+
     if not answer:
         return "Please provide an answer."
 
@@ -150,26 +134,39 @@ def validate_diagnosis_answer(question_num, answer):
         if not answer.isdigit() or not 0 < int(answer) <= 120:
             return "Please enter a valid age (e.g., 35)."
     elif field == "gender":
-        if answer.lower() not in ['male', 'female', 'other']:
+        # Allow variations like "Male." or "female."
+        cleaned_gender = answer.lower().rstrip('.')
+        if cleaned_gender not in ['male', 'female', 'other']:
             return "Please enter Male, Female, or Other."
+        answer = cleaned_gender # Use the cleaned version for consistency if needed later
     elif field == "weight":
         try:
-            weight = float(answer)
+            # Allow numbers like "70."
+            cleaned_weight = answer.rstrip('.')
+            weight = float(cleaned_weight)
             if not 1 <= weight <= 500:
                 return "Please enter a valid weight in kg (e.g., 70)."
+            answer = cleaned_weight # Use the cleaned version
         except ValueError:
             return "Please enter a valid number for weight (e.g., 70)."
     elif field == "height":
         try:
-            height = float(answer)
+            # Allow numbers like "175."
+            cleaned_height = answer.rstrip('.')
+            height = float(cleaned_height)
             if not 30 <= height <= 300:
                 return "Please enter a valid height in cm (e.g., 175)."
+            answer = cleaned_height # Use the cleaned version
         except ValueError:
             return "Please enter a valid number for height (e.g., 175)."
     elif field == "severity":
-        if not answer.isdigit() or not 1 <= int(answer) <= 10:
+         # Allow numbers like "8."
+        cleaned_severity = answer.rstrip('.')
+        if not cleaned_severity.isdigit() or not 1 <= int(cleaned_severity) <= 10:
             return "Please enter a number between 1 and 10."
+        answer = cleaned_severity # Use the cleaned version
     # No specific validation for symptoms, duration, conditions, medications, blood_group beyond non-empty
+    # We might want to keep punctuation for free text fields like symptoms.
 
     return None
 
@@ -345,14 +342,22 @@ if 'current_mode' not in st.session_state:
     st.session_state.current_mode = "conversation" # Default mode
 if 'diagnosis_state' not in st.session_state:
     st.session_state.diagnosis_state = default_diagnosis_state.copy()
-if 'listening' not in st.session_state:
-    st.session_state.listening = False
 if 'user_speech' not in st.session_state:
     st.session_state.user_speech = ""
-if 'audio_to_play' not in st.session_state: # New state variable for TTS
+if 'audio_input_key' not in st.session_state: # Key to reset audio input
+    st.session_state.audio_input_key = str(uuid.uuid4())
+# Add state for TTS audio playback
+if 'audio_to_play' not in st.session_state:
     st.session_state.audio_to_play = None
-if 'audio_key' not in st.session_state: # New state variable for TTS key
+if 'audio_key' not in st.session_state:
     st.session_state.audio_key = None
+# Add state to hold recorded audio bytes temporarily
+if 'audio_input_value' not in st.session_state:
+    st.session_state.audio_input_value = None
+# Add state for selected model
+if 'selected_model' not in st.session_state:
+    st.session_state.selected_model = "llama3-70b-8192" # Default model
+
 
 # ---------- UI Configuration (Reverted to Old Style) ----------
 st.markdown("""
@@ -360,18 +365,6 @@ st.markdown("""
     .stApp { background-color: #0e1117; color: #fafafa; }
     .stChatMessage { background-color: #1e2530; border-radius: 15px; padding: 15px; margin-bottom: 10px; }
     .stTextInput>div>div>input { border-radius: 25px; background-color: #262730; color: white; }
-    /* Target only the sidebar microphone button for circle style */
-    .stSidebar .stButton>button {
-        border-radius: 50% !important; /* Use !important to override potential conflicts */
-        height: 50px !important;
-        width: 50px !important;
-        font-size: 24px !important;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        padding: 0; /* Remove default padding */
-        margin: auto; /* Center button if container width is larger */
-    }
     .diagnosis-progress { padding: 1rem; border-radius: 10px; background: #1e2530; margin-bottom: 1rem; } /* Added margin-bottom */
     .stProgress > div > div > div > div { background-color: #4CAF50; } /* Progress bar color (example: green) */
     h1, h2, h3, h4, h5, h6 { color: #fafafa; } /* Headers color */
@@ -444,8 +437,7 @@ def show_diagnosis_results():
         st.session_state.diagnosis_state["session_id"] = str(uuid.uuid4()) # New session ID
         # Clear chat messages
         st.session_state.messages = [] # Clear all messages like old version
-        st.session_state.audio_to_play = None # Clear pending audio
-        st.session_state.audio_key = None
+        st.session_state.audio_input_key = str(uuid.uuid4()) # Reset audio input key for new session
         st.rerun()
 
 # ---------- Conversation Context ----------
@@ -653,6 +645,45 @@ def generate_and_store_tts(text_to_speak):
         st.session_state.audio_to_play = None
         st.session_state.audio_key = None
 
+# ---------- Mode Change Callback ----------
+def handle_mode_change():
+    """Callback function to handle state resets when the mode changes."""
+    # Get the new mode directly from the widget's state key
+    selected_mode_display = st.session_state.mode_radio # Access the radio button's value via its key
+    mode_map = {
+        "Friendly Conversation": "conversation",
+        "Hospital Navigation": "navigation",
+        "Health Assessment": "diagnosis",
+        "Medical Inquiry": "healthcare"
+    }
+    new_mode = mode_map[selected_mode_display]
+    previous_mode = st.session_state.current_mode # Get the mode *before* the change
+
+    # Clear audio playback state regardless of mode change
+    st.session_state.audio_to_play = None
+    st.session_state.audio_key = None
+
+    # Reset diagnosis state if switching *away* from diagnosis mode
+    if previous_mode == "diagnosis" and new_mode != "diagnosis":
+        print("Switching away from diagnosis mode, resetting state.")
+        st.session_state.diagnosis_state = default_diagnosis_state.copy()
+        st.session_state.diagnosis_state["session_id"] = str(uuid.uuid4())
+        st.session_state.messages = []
+        st.session_state.audio_input_key = str(uuid.uuid4()) # Reset audio input key
+
+    # Reset messages and state if switching *to* diagnosis mode
+    elif previous_mode != "diagnosis" and new_mode == "diagnosis":
+         print("Switching to diagnosis mode, resetting state and messages.")
+         st.session_state.diagnosis_state = default_diagnosis_state.copy()
+         st.session_state.diagnosis_state["session_id"] = str(uuid.uuid4())
+         st.session_state.messages = []
+         st.session_state.audio_input_key = str(uuid.uuid4()) # Reset audio input key
+
+    # Update the current mode state *after* handling the transition
+    st.session_state.current_mode = new_mode
+    # No explicit st.rerun() needed here, Streamlit handles it
+
+
 # ---------- Main App Layout ----------
 st.title("🏥 Hospital Healthcare Assistant")
 
@@ -669,7 +700,9 @@ with st.sidebar:
         "Medical Inquiry": "healthcare"
     }.items()}
     try:
-        current_index = mode_options.index(mode_map_inverse.get(current_mode_key, "Friendly Conversation"))
+        # Ensure current_mode_key is valid before finding index
+        current_display_mode = mode_map_inverse.get(current_mode_key, "Friendly Conversation")
+        current_index = mode_options.index(current_display_mode)
     except ValueError:
         current_index = 0 # Default if mode somehow gets corrupted
 
@@ -678,37 +711,10 @@ with st.sidebar:
         mode_options,
         index=current_index, # Set index based on current state
         key="mode_radio",
-        on_change=lambda: st.session_state.update(audio_to_play=None, audio_key=None) # Clear audio on mode change
+        on_change=handle_mode_change # Use the new callback
     )
-    # Map display name to internal mode key
-    mode_map = {
-        "Friendly Conversation": "conversation",
-        "Hospital Navigation": "navigation",
-        "Health Assessment": "diagnosis",
-        "Medical Inquiry": "healthcare"
-    }
-    new_mode = mode_map[selected_mode_display]
-
-    # Reset diagnosis state if switching *away* from diagnosis mode
-    if st.session_state.current_mode == "diagnosis" and new_mode != "diagnosis":
-        print("Switching away from diagnosis mode, resetting state.")
-        st.session_state.diagnosis_state = default_diagnosis_state.copy()
-        st.session_state.diagnosis_state["session_id"] = str(uuid.uuid4())
-        # Clear all messages when switching away from diagnosis
-        st.session_state.messages = []
-        st.session_state.audio_to_play = None # Clear pending audio
-        st.session_state.audio_key = None
-
-    # Reset messages and state if switching *to* diagnosis mode
-    elif st.session_state.current_mode != "diagnosis" and new_mode == "diagnosis":
-         print("Switching to diagnosis mode, resetting state and messages.")
-         st.session_state.diagnosis_state = default_diagnosis_state.copy()
-         st.session_state.diagnosis_state["session_id"] = str(uuid.uuid4())
-         st.session_state.messages = [] # Clear messages for a fresh start
-         st.session_state.audio_to_play = None # Clear pending audio
-         st.session_state.audio_key = None
-
-    st.session_state.current_mode = new_mode
+    # The logic previously here for resetting state is now in handle_mode_change
+    # The line st.session_state.current_mode = new_mode is also moved to the callback
 
     st.divider()
     st.subheader("Audio Controls")
@@ -717,31 +723,27 @@ with st.sidebar:
     speech_to_text_enabled = st.checkbox( # Renamed variable for clarity
         "Enable Speech-to-Text",
         value=True, # Match old default
-        disabled=not MICROPHONE_AVAILABLE,
-        help=MICROPHONE_ERROR_MSG if not MICROPHONE_AVAILABLE else "Requires a working microphone", # Match old help text
+        help="Uses browser's recording capability", # Updated help text
         key="stt_checkbox"
     )
-    if not MICROPHONE_AVAILABLE:
-        st.warning(f"🎤 {MICROPHONE_ERROR_MSG}")
 
-    # --- Microphone Button Moved Here ---
-    if speech_to_text_enabled and MICROPHONE_AVAILABLE:
-        # Use columns to center the button better if needed, or rely on CSS
-        # col1, col2, col3 = st.columns([1,1,1])
-        # with col2:
-        if not st.session_state.get('listening', False):
-            if st.button("🎤", key="mic_button_sidebar", help="Click to speak"): # Use icon only
-                st.session_state.listening = True
-                st.session_state.user_speech = "" # Clear previous speech
-                st.session_state.audio_to_play = None # Clear pending audio playback
-                st.session_state.audio_key = None
-                # Use toast for brief feedback without disrupting layout
-                st.toast("Listening...")
-                st.rerun() # Rerun to start listening process in main body
-        else:
-            # Show a "Listening" indicator (can be a disabled button or text)
-            st.button("🔴", disabled=True, key="mic_listening_indicator", help="Listening...") # Use icon only
-
+    # --- New Audio Input Widget ---
+    if speech_to_text_enabled:
+        # Use a unique key that gets reset to allow new recordings
+        audio_bytes_input = st.audio_input( # Renamed variable to avoid conflict
+            "Record your message:",
+            key=st.session_state.audio_input_key
+        )
+        if audio_bytes_input:
+            # Check if this is a new recording (prevent processing same bytes multiple times)
+            if 'last_processed_audio_id' not in st.session_state or st.session_state.last_processed_audio_id != id(audio_bytes_input):
+                st.session_state.audio_input_value = audio_bytes_input # Store bytes in session state
+                st.session_state.last_processed_audio_id = id(audio_bytes_input) # Store ID to prevent reprocessing
+                # Don't process here, process in the main loop after rerun
+                st.toast("Audio recorded. Processing...")
+                # Reset the key to allow a new recording next time
+                st.session_state.audio_input_key = str(uuid.uuid4())
+                st.rerun() # Rerun to process the audio
 
     st.divider()
     st.subheader("Model Selection")
@@ -749,12 +751,11 @@ with st.sidebar:
     model = st.selectbox(
         "Select model from Groq Cloud",
         ["llama3-70b-8192", "llama-3.3-70b-versatile"], # Match old list
-        index=0, # Default to Llama 3 70b
-        key="model_select"
+        index=["llama3-70b-8192", "llama-3.3-70b-versatile"].index(st.session_state.selected_model), # Use state for index
+        key="model_select",
+        on_change=lambda: st.session_state.update(selected_model=st.session_state.model_select) # Update state on change
     )
-    st.session_state.selected_model = model # Store selected model in session state
-
-    # No info box in old version's sidebar
+    # st.session_state.selected_model = model # Store selected model in session state - Handled by on_change
 
 
 # --- Main Chat Area ---
@@ -793,68 +794,98 @@ if st.session_state.current_mode == "diagnosis":
          show_diagnosis_results()
 
 
-# --- Handle Speech Recognition (if listening state is active) ---
-# Moved this section before the input area processing
+# --- Handle Speech Recognition (Processing audio from st.audio_input using Google Cloud API) ---
 user_input_speech = ""
-if st.session_state.get('listening', False):
-    # Display listening status more prominently in the main area
+# Check if audio object was stored from the sidebar widget
+if 'audio_input_value' in st.session_state and st.session_state.audio_input_value:
+    audio_object = st.session_state.audio_input_value # Get the UploadedFile-like object
+    st.session_state.audio_input_value = None # Clear the stored object immediately
+
     status_placeholder = st.empty()
-    status_placeholder.info("🎙️ Listening... Please speak clearly.")
+    status_placeholder.info("🧠 Processing recorded audio via Google Cloud...")
     try:
-        r = sr.Recognizer()
-        # Adjust microphone settings if needed (e.g., device_index)
-        with sr.Microphone() as source:
-            # Optional: Adjust for ambient noise - can add latency but improve accuracy
-            # print("Adjusting for ambient noise...")
-            # r.adjust_for_ambient_noise(source, duration=0.5)
-            # print("Adjustment complete.")
-            print("DEBUG: Microphone source opened. Listening...") # Debug print
-            # Listen with timeouts
-            # Increased timeout slightly
-            audio = r.listen(source, timeout=7, phrase_time_limit=15)
-            print("DEBUG: Audio captured. Processing...") # Debug print
-            status_placeholder.info("🧠 Processing speech...") # Update status
-            # Use Google Speech Recognition (requires internet)
-            user_input_speech = r.recognize_google(audio)
+        # --- Read bytes from the audio object ---
+        audio_bytes_data = audio_object.read() # Renamed variable
+
+        # --- Initialize Google Cloud Speech Client ---
+        google_credentials = None
+        try:
+            # Try loading from Streamlit secrets first (for deployment)
+            google_creds_dict = st.secrets["google_credentials"]
+            google_credentials = service_account.Credentials.from_service_account_info(google_creds_dict)
+            print("Using Google credentials from Streamlit secrets.")
+        except (KeyError, FileNotFoundError):
+            # Fallback to default environment variable (for local testing)
+            print("Streamlit secrets not found. Falling back to GOOGLE_APPLICATION_CREDENTIALS.")
+            # If GOOGLE_APPLICATION_CREDENTIALS is set, client initializes automatically
+            # If neither is set, SpeechClient() will raise an error.
+            pass # Credentials will be None, SpeechClient() will use default search
+
+        # Initialize client (with credentials if loaded from secrets)
+        client = speech.SpeechClient(credentials=google_credentials)
+
+        # --- Prepare Audio and Config for Google API ---
+        recognition_audio = speech.RecognitionAudio(content=audio_bytes_data) # Use renamed variable
+
+        # Configure the request
+        # NOTE: st.audio_input often provides WEBM/OPUS. Google *might* auto-detect.
+        # If transcription fails frequently, you might need to explicitly set the encoding
+        # based on browser behavior or convert to WAV first (which would require pydub again).
+        # Start by letting Google try to auto-detect.
+        config = speech.RecognitionConfig(
+            # encoding=speech.RecognitionConfig.AudioEncoding.WEBM_OPUS, # Example if auto-detect fails
+            # sample_rate_hertz=48000, # Often needed for specific encodings, but maybe not auto
+            language_code="en-US", # Adjust language code if needed
+            enable_automatic_punctuation=True,
+        )
+
+        # --- Send Request and Get Response ---
+        print("Sending audio to Google Cloud Speech-to-Text...")
+        response = client.recognize(config=config, audio=recognition_audio)
+        print("Received response from Google Cloud.")
+
+        # --- Extract Transcript ---
+        if response.results:
+            user_input_speech = response.results[0].alternatives[0].transcript
             st.session_state.user_speech = user_input_speech # Store recognized speech
-            print(f"DEBUG: Speech recognized: {user_input_speech}") # Debug print
-            st.toast("✅ Speech recognized!") # Use toast for success
-    except sr.WaitTimeoutError:
-        st.toast("⚠️ No speech detected within the time limit.")
-        st.session_state.user_speech = "" # Clear speech on error
-    except sr.UnknownValueError:
-        st.toast("🤔 Could not understand audio. Please try again.")
-        st.session_state.user_speech = "" # Clear speech on error
-    except sr.RequestError as e:
-        st.error(f"Could not request results from Google Speech Recognition service; {e}")
-        st.session_state.user_speech = "" # Clear speech on error
+            print(f"DEBUG: Speech recognized via Google Cloud: {user_input_speech}")
+            st.toast("✅ Speech recognized!")
+        else:
+            # Handle case where Google Cloud returns no results
+            st.toast("🤔 Could not understand audio (Google Cloud returned no results).")
+            st.session_state.user_speech = ""
+
     except Exception as e:
-        st.error(f"An error occurred during speech recognition: {e}")
-        st.session_state.user_speech = "" # Clear speech on error
+        # Catch errors during Google API interaction or client init
+        st.error(f"Google Cloud Speech-to-Text Error: {e}")
+        print(f"Google Cloud STT Error: {e}") # Log the full error
+        st.session_state.user_speech = ""
     finally:
         status_placeholder.empty() # Clear the status message
-        st.session_state.listening = False # Reset listening state
-        # Rerun regardless of whether speech was captured or not,
-        # to update the UI (e.g., button state) and process any captured speech.
-        st.rerun()
-
+        # Rerun needed if speech was successfully transcribed to process it
+        if user_input_speech:
+            st.rerun()
 
 # --- Input Area ---
 input_area = st.container()
 with input_area:
     # Determine input source (prioritize text input if both happen somehow)
     user_input_text = st.chat_input("Type your message here...", key="chat_input")
+    # Get speech recognized in the block above
     user_input_from_speech = st.session_state.get("user_speech", "")
 
-    user_input = user_input_text or user_input_from_speech
-    input_method = 'speech' if user_input == user_input_from_speech and user_input != "" else 'text'
+    # Prioritize speech input if it exists from the latest run
+    if user_input_from_speech:
+         user_input = user_input_from_speech
+         input_method = 'speech'
+         st.session_state.user_speech = "" # Clear speech state after capturing
+    else:
+        user_input = user_input_text
+        input_method = 'text'
+
 
     # Process the input if there is any
     if user_input:
-        # Clear speech input state immediately after capturing it for processing
-        if input_method == 'speech':
-            st.session_state.user_speech = ""
-
         # Add user message to state
         st.session_state.messages.append({"role": "user", "content": user_input, "mode": st.session_state.current_mode})
 
@@ -883,8 +914,4 @@ with input_area:
 
 
         # Rerun AFTER processing and potentially generating TTS data.
-        # This rerun will:
-        # 1. Display the user's message.
-        # 2. Display the assistant's message.
-        # 3. Trigger the `st.audio` widget in the chat container if `audio_to_play` is set.
         st.rerun()
