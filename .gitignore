@@ -20,3 +20,5 @@ __pycache__/
 # Logs
 logs/
 *.log
+app.py
+old_streamlit/

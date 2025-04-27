@@ -1,0 +1,33 @@
+
+MEDICAL CONSULTATION REPORT
+Generated on: 2025-04-27 12:42:36
+Session ID: 928c1d00-dc58-4c24-b86c-bc439bd7aecb
+
+PATIENT INFORMATION
+-----------------
+Age: 149
+Gender: male
+Weight: 80 kg
+Height: 152 cm
+Blood Group: be positive
+
+SYMPTOMS AND CONDITION
+-------------------
+Main Symptoms: granny nose and feeling cold
+Duration: since last three weeks
+Severity (1-10): 4
+
+MEDICAL HISTORY
+-------------
+Existing Conditions: no I don't have
+Current Medications: no I am not taking
+
+ASSESSMENT
+---------
+Condition: MILD
+Requires Immediate Medical Attention: No
+
+RECOMMENDATIONS
+-------------
+- Monitor symptoms closely
+- If symptoms worsen, consult a healthcare provider

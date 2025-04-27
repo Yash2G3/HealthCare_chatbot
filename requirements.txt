@@ -8,3 +8,4 @@ langchain-groq
 python-dotenv
 groq
 uvicorn
+pyaudio
