@@ -8,5 +8,4 @@ langchain-groq
 python-dotenv
 groq
 uvicorn
-portaudio19-dev
-python3-pyaudio
+streamlit-mic-recorder

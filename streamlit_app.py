@@ -8,7 +8,7 @@ import datetime
 import os
 import speech_recognition as sr
 from gtts import gTTS
-import pyaudio # Import to check installation
+# import pyaudio # Removed: No longer directly used for checking
 from dotenv import load_dotenv
 from groq import Groq, GroqError # Use Groq client directly
 import time # Import time for potential delays
@@ -21,23 +21,27 @@ GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 MICROPHONE_AVAILABLE = False
 MICROPHONE_ERROR_MSG = ""
 try:
-    # Check if PyAudio is installed and usable
-    p = pyaudio.PyAudio()
-    p.terminate()
     # Check if SpeechRecognition can list microphones
+    # This implicitly checks if a working audio input backend is available
     mic_list = sr.Microphone.list_microphone_names()
     if not mic_list:
-        MICROPHONE_ERROR_MSG = "No microphones found by SpeechRecognition. Please check your system's audio input devices."
+        MICROPHONE_ERROR_MSG = "No microphones found by SpeechRecognition. Please check your system's audio input devices and ensure necessary libraries (like PyAudio or PortAudio) are installed."
     else:
         MICROPHONE_AVAILABLE = True
         print("Microphones found:", mic_list) # Optional: Log found mics
-except NameError:
-    MICROPHONE_ERROR_MSG = "PyAudio library not found or installed correctly. Please run: pip install pyaudio"
-except ImportError: # Catch ImportError specifically for pyaudio
-    MICROPHONE_ERROR_MSG = "PyAudio library not found or installed correctly. Please run: pip install pyaudio"
+except ImportError:
+    # This might catch if speech_recognition itself is missing, though less likely
+    MICROPHONE_ERROR_MSG = "SpeechRecognition library not found. Please run: pip install SpeechRecognition"
+except OSError as e:
+    # This can catch issues like PortAudio library not found on some systems
+     MICROPHONE_ERROR_MSG = f"Error initializing audio system: {e}. Ensure microphone is connected, permissions are granted, and necessary audio libraries (like PortAudio) are installed."
+     # On macOS, you might need: brew install portaudio
+     # On Debian/Ubuntu: sudo apt-get install libasound-dev portaudio19-dev libportaudio2 libportaudiocpp0
+     # On Fedora: sudo dnf install portaudio-devel alsa-lib-devel
 except Exception as e:
     MICROPHONE_ERROR_MSG = f"Error initializing audio input: {e}. Ensure microphone is connected and permissions are granted."
     # On macOS, you might need to grant terminal/IDE microphone access in System Settings > Privacy & Security > Microphone.
+
 
 # --- Hospital Layout ---
 try:
