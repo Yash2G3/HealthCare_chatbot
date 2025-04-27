@@ -1,0 +1,33 @@
+
+MEDICAL CONSULTATION REPORT
+Generated on: 2025-03-25 10:21:53
+Session ID: 50b58dc7-ea9e-42fb-bd20-29789a333ccb
+
+PATIENT INFORMATION
+-----------------
+Age: 15
+Gender: female
+Weight: 52 kg
+Height: 135 cm
+Blood Group: be positive
+
+SYMPTOMS AND CONDITION
+-------------------
+Main Symptoms: I am having fever pain in my throat and cough and I am not able to sleep in the last one week
+Duration: 20 days
+Severity (1-10): 5
+
+MEDICAL HISTORY
+-------------
+Existing Conditions: Error: 
+Current Medications: no
+
+ASSESSMENT
+---------
+Condition: MODERATE
+Requires Immediate Medical Attention: No
+
+RECOMMENDATIONS
+-------------
+- Monitor symptoms closely
+- If symptoms worsen, consult a healthcare provider

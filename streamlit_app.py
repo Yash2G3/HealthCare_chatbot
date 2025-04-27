@@ -492,7 +492,7 @@ with st.sidebar:
     st.divider()
     st.subheader("Model Selection")
     model = st.selectbox(
-        "Select Groq model",
+        "Select model from Groq Cloud",
         ["llama3-70b-8192", "mixtral-8x7b-32768"],
         index=0
     )

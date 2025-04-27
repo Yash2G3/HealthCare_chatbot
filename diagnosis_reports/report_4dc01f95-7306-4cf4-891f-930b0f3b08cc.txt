@@ -1,0 +1,33 @@
+
+MEDICAL CONSULTATION REPORT
+Generated on: 2025-03-25 13:41:03
+Session ID: 4dc01f95-7306-4cf4-891f-930b0f3b08cc
+
+PATIENT INFORMATION
+-----------------
+Age: 22
+Gender: Male
+Weight: 82 kg
+Height: 180 cm
+Blood Group: A+
+
+SYMPTOMS AND CONDITION
+-------------------
+Main Symptoms: fever, cough , pain in throat
+Duration: 5 days
+Severity (1-10): 5
+
+MEDICAL HISTORY
+-------------
+Existing Conditions: no
+Current Medications: no
+
+ASSESSMENT
+---------
+Condition: MODERATE
+Requires Immediate Medical Attention: No
+
+RECOMMENDATIONS
+-------------
+- Monitor symptoms closely
+- If symptoms worsen, consult a healthcare provider

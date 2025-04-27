@@ -1,0 +1,33 @@
+
+MEDICAL CONSULTATION REPORT
+Generated on: 2025-03-25 14:00:02
+Session ID: f8b3ddf5-dab0-46bf-af7e-026b80f46fc6
+
+PATIENT INFORMATION
+-----------------
+Age: 22
+Gender: female
+Weight: 65 kg
+Height: 150 cm
+Blood Group: A+
+
+SYMPTOMS AND CONDITION
+-------------------
+Main Symptoms: fever,cough,pain in eyes
+Duration: 4 days
+Severity (1-10): 3
+
+MEDICAL HISTORY
+-------------
+Existing Conditions: no
+Current Medications: no
+
+ASSESSMENT
+---------
+Condition: MILD
+Requires Immediate Medical Attention: No
+
+RECOMMENDATIONS
+-------------
+- Rest and monitor symptoms
+- Practice self-care measures

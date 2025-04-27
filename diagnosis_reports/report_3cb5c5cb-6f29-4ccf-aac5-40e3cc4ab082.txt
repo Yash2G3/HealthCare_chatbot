@@ -1,0 +1,33 @@
+
+MEDICAL CONSULTATION REPORT
+Generated on: 2025-03-25 14:07:10
+Session ID: 3cb5c5cb-6f29-4ccf-aac5-40e3cc4ab082
+
+PATIENT INFORMATION
+-----------------
+Age: 67
+Gender: other
+Weight: 77 kg
+Height: 177 cm
+Blood Group: w -ve
+
+SYMPTOMS AND CONDITION
+-------------------
+Main Symptoms: sleeplessness
+Duration: 6 months
+Severity (1-10): 5
+
+MEDICAL HISTORY
+-------------
+Existing Conditions: yes
+Current Medications: yes
+
+ASSESSMENT
+---------
+Condition: MODERATE
+Requires Immediate Medical Attention: No
+
+RECOMMENDATIONS
+-------------
+- Monitor symptoms closely
+- If symptoms worsen, consult a healthcare provider
